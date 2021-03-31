@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='metar.py',
-    version='1.0.0.dev1',
+    version='1.0.dev1',
     description='Library allowing easy importing METAR data from NOAA\'s website.',
     author='Artur Michalek',
     package_dir={'': 'metar'},
