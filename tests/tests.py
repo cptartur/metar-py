@@ -70,3 +70,27 @@ class TestGetMetarForList(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+class TestParsers(unittest.TestCase):
+
+    def setUp(self):
+        self.metar = metar.Metar()
+
+    def test_altimeter_QNH_parse(self):
+        r = self.metar._Metar__parse_altimeter('Q1013')
+        self.assertEqual({'alt': 1013, 'alt_units': 'hPa'}, r)
+
+    def test_altimeter_ALT_parse(self):
+        r = self.metar._Metar__parse_altimeter('A2992')
+        self.assertEqual({'alt': 29.92, 'alt_units': 'inHg'}, r)
+
+    def test_altimeter_return_format_error(self):
+        r = self.metar._Metar__parse_altimeter('E2992')
+        self.assertEqual({'errors': 'Unsupported altimeter format'}, r)
+        r = self.metar._Metar__parse_altimeter('2992')
+        self.assertEqual({'errors': 'Unsupported altimeter format'}, r)
+        r = self.metar._Metar__parse_altimeter('EEAA')
+        self.assertEqual({'errors': 'Unsupported altimeter format'}, r)
+        r = self.metar._Metar__parse_altimeter('2992A')
+        self.assertEqual({'errors': 'Unsupported altimeter format'}, r)
