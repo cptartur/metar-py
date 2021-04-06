@@ -6,7 +6,7 @@ setup(
     description='Library allowing easy importing METAR data from NOAA\'s website.',
     author='Artur Michalek',
     package_dir={'': 'metar'},
-    packages=find_packages(where='src'),
+    packages=find_packages(where='metar'),
     python_requires='>=3.8.5',
     install_requires=['requests'],
 )
