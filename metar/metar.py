@@ -31,6 +31,35 @@ class Metar:
             finally:
                 return {'alt': value, 'alt_units': 'inHg'}
 
+    def __parse_visibility(self, metar, vis_sm):
+        try:
+            vis_sm = float(vis_sm)
+        except ValueError:
+            return {'errors': f'Incorrect vis_sm value: {vis_sm}'}
+
+        p = re.compile(r'(?P<vis_m>\b\d{4}\b)|(?P<vis_sm>\d*(\s\d\/\d)?SM)')
+        r = re.search(p, metar)
+        if r is None:
+            return {'errors': 'Visibility parsing error'}
+        match = r.groupdict()
+
+        try:
+            vis_sm = float(vis_sm)
+        except ValueError:
+            return {'errors': 'Visibility parsing error'}
+
+        vis_m = None
+        if match['vis_m'] is not None:
+            try:
+                vis_m = int(match['vis_m'])
+            except ValueError:
+                return {'errors': 'Visibility parsing error'}
+
+        if not vis_m:
+            vis_m = round(vis_sm * 1609.344)
+
+        return {'visibility_statute_mi': vis_sm, 'visibility_m': vis_m}
+
     def get_metar(self, airport_code):
         if type(airport_code) != str:
             raise TypeError('Airport code must be a string')
@@ -83,8 +112,13 @@ class Metar:
             metar['altim_in_hg'] = t['alt']
             metar['altim_in_hpa'] = ''
 
-        # metar = {'errors': None}
-        metar.update({'errors': None})
+        t = self.__parse_visibility(
+            metar['raw_text'], metar['visibility_statute_mi'])
+        metar.update(t)
+
+        if 'errors' not in metar:
+            metar['errors'] = None
+
         return metar
 
     def get_metar_for_list(self, airport_list):
