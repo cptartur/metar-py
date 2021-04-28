@@ -78,7 +78,7 @@ class Metar:
             r = requests.get(
                 self.url
                 + 'httpparam?dataSource=metars&requestType=retrieve&format=csv&hoursBeforeNow=12&mostRecent=true',
-                params={'StationString': airport_code},
+                params={'stationString': airport_code},
             )
         except requests.ConnectionError as e:
             logging.exception(f'{e} on get_metar for code {airport_code}')
