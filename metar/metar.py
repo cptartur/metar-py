@@ -22,14 +22,22 @@ class Metar:
             except ValueError:
                 return {'errors': f'Incorrect altimeter value: {value}'}
             finally:
-                return {'alt': value, 'alt_units': 'hPa'}
+                # return {'alt': value, 'alt_units': 'hPa'}
+                return {
+                    'altim_in_hpa': value,
+                    'altim_in_hg': round(value * 0.029529983071445, 2)
+                }
         else:
             try:
                 value = float(''.join([value[:2], '.', value[2:]]))
             except ValueError:
                 return {'errors': f'Incorrect altimeter value: {value}'}
             finally:
-                return {'alt': value, 'alt_units': 'inHg'}
+                # return {'alt': value, 'alt_units': 'inHg'}
+                return {
+                    'altim_in_hpa': round(value * 33.86388666666671),
+                    'altim_in_hg': value
+                }
 
     def __parse_visibility(self, metar, vis_sm):
         try:
@@ -109,11 +117,12 @@ class Metar:
 
         alt = re.findall(r'Q\d{4}|A\d{4}', metar['raw_text'])
         t = self.__parse_altimeter(alt[0])
-        if(t['alt_units'] == 'hPa'):
-            metar['altim_in_hpa'] = t['alt']
-        else:
-            metar['altim_in_hg'] = t['alt']
-            metar['altim_in_hpa'] = ''
+        metar.update(t)
+        # if(t['alt_units'] == 'hPa'):
+        #     metar['altim_in_hpa'] = t['alt']
+        # else:
+        #     metar['altim_in_hg'] = t['alt']
+        #     metar['altim_in_hpa'] = ''
 
         t = self.__parse_visibility(
             metar['raw_text'], metar['visibility_statute_mi'])
