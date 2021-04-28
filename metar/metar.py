@@ -37,11 +37,14 @@ class Metar:
         except ValueError:
             return {'errors': f'Incorrect vis_sm value: {vis_sm}'}
 
-        p = re.compile(r'(?P<vis_m>\b\d{4}\b)|(?P<vis_sm>\d*(\s\d\/\d)?SM)')
+        p = re.compile(r'(?P<vis_m>\b\d{4}\b)|(?P<vis_sm>\d*(\s\d\/\d)?SM)|(?P<cavok>)CAVOK')
         r = re.search(p, metar)
         if r is None:
             return {'errors': 'Visibility parsing error'}
         match = r.groupdict()
+
+        if match['cavok'] is not None:
+            return {'visibility_statute_mi': 6.21, 'visibility_m': 10.0}
 
         try:
             vis_sm = float(vis_sm)
