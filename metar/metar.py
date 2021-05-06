@@ -1,5 +1,6 @@
 import requests
 import logging
+import re
 
 
 class Metar:
@@ -7,14 +8,77 @@ class Metar:
         logging.basicConfig(level=logging.CRITICAL)
         self.url = 'https://www.aviationweather.gov/adds/dataserver_current/'
 
+    def __parse_altimeter(self, alt):
+        try:
+            code, value, _ = re.split(r'(\d+)', alt)
+        except ValueError:
+            return {'errors': 'Unsupported altimeter format'}
+        if code not in ('Q', 'A'):
+            return {'errors': 'Unsupported altimeter format'}
+
+        if code == 'Q':
+            try:
+                value = int(value)
+            except ValueError:
+                return {'errors': f'Incorrect altimeter value: {value}'}
+            finally:
+                # return {'alt': value, 'alt_units': 'hPa'}
+                return {
+                    'altim_in_hpa': value,
+                    'altim_in_hg': round(value * 0.029529983071445, 2)
+                }
+        else:
+            try:
+                value = float(''.join([value[:2], '.', value[2:]]))
+            except ValueError:
+                return {'errors': f'Incorrect altimeter value: {value}'}
+            finally:
+                # return {'alt': value, 'alt_units': 'inHg'}
+                return {
+                    'altim_in_hpa': round(value * 33.86388666666671),
+                    'altim_in_hg': value
+                }
+
+    def __parse_visibility(self, metar, vis_sm):
+        try:
+            vis_sm = float(vis_sm)
+        except ValueError:
+            return {'errors': f'Incorrect vis_sm value: {vis_sm}'}
+
+        p = re.compile(r'(?P<vis_m>\b\d{4}\b)|(?P<vis_sm>\d*(\s\d\/\d)?SM)|(?P<cavok>)CAVOK')
+        r = re.search(p, metar)
+        if r is None:
+            return {'errors': 'Visibility parsing error'}
+        match = r.groupdict()
+
+        if match['cavok'] is not None:
+            return {'visibility_statute_mi': 6.21, 'visibility_m': 10.0}
+
+        try:
+            vis_sm = float(vis_sm)
+        except ValueError:
+            return {'errors': 'Visibility parsing error'}
+
+        vis_m = None
+        if match['vis_m'] is not None:
+            try:
+                vis_m = int(match['vis_m'])
+            except ValueError:
+                return {'errors': 'Visibility parsing error'}
+
+        if not vis_m:
+            vis_m = round(vis_sm * 1609.344)
+
+        return {'visibility_statute_mi': vis_sm, 'visibility_m': vis_m}
+
     def get_metar(self, airport_code):
         if type(airport_code) != str:
             raise TypeError('Airport code must be a string')
         try:
             r = requests.get(
                 self.url
-                + 'httpparam?dataSource=metars&requestType=retrieve&format=csv&hoursBeforeNow=3&mostRecent=true',
-                params={'StationString': airport_code},
+                + 'httpparam?dataSource=metars&requestType=retrieve&format=csv&hoursBeforeNow=12&mostRecent=true',
+                params={'stationString': airport_code},
             )
         except requests.ConnectionError as e:
             logging.exception(f'{e} on get_metar for code {airport_code}')
@@ -51,8 +115,22 @@ class Metar:
             else:
                 metar[h] = c
 
-        # metar = {'errors': None}
-        metar.update({'errors': None})
+        alt = re.findall(r'Q\d{4}|A\d{4}', metar['raw_text'])
+        t = self.__parse_altimeter(alt[0])
+        metar.update(t)
+        # if(t['alt_units'] == 'hPa'):
+        #     metar['altim_in_hpa'] = t['alt']
+        # else:
+        #     metar['altim_in_hg'] = t['alt']
+        #     metar['altim_in_hpa'] = ''
+
+        t = self.__parse_visibility(
+            metar['raw_text'], metar['visibility_statute_mi'])
+        metar.update(t)
+
+        if 'errors' not in metar:
+            metar['errors'] = None
+
         return metar
 
     def get_metar_for_list(self, airport_list):
