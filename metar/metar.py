@@ -19,23 +19,22 @@ class Metar:
         if code == 'Q':
             try:
                 value = int(value)
-            except ValueError:
-                return {'errors': f'Incorrect altimeter value: {value}'}
-            finally:
                 return {
                     'altim_in_hpa': value,
                     'altim_in_hg': round(value * 0.029529983071445, 2)
                 }
+            except ValueError:
+                return {'errors': f'Incorrect altimeter value: {value}'}
+                
         else:
             try:
                 value = float(''.join([value[:2], '.', value[2:]]))
-            except ValueError:
-                return {'errors': f'Incorrect altimeter value: {value}'}
-            finally:
                 return {
                     'altim_in_hpa': round(value * 33.86388666666671),
                     'altim_in_hg': value
                 }
+            except ValueError:
+                return {'errors': f'Incorrect altimeter value: {value}'}
 
     def __parse_visibility(self, metar, vis_sm):
         try:
