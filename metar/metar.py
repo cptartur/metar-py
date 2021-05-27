@@ -52,7 +52,7 @@ class Metar:
         match = r.groupdict()
 
         if match['cavok'] is not None:
-            return {'visibility_statute_mi': 6.21, 'visibility_m': 10.0}
+            return {'visibility_statute_mi': 6.21, 'visibility_m': 10000}
 
         try:
             vis_sm = float(vis_sm)
